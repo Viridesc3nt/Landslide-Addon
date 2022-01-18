@@ -1,22 +1,19 @@
 package me.justinjaques.landslide;
 
 
-import com.jedk1.jedcore.util.TempFallingBlock;
+
 import com.projectkorra.projectkorra.GeneralMethods;
 import com.projectkorra.projectkorra.ProjectKorra;
 import com.projectkorra.projectkorra.ability.AddonAbility;
 import com.projectkorra.projectkorra.ability.EarthAbility;
 import com.projectkorra.projectkorra.configuration.ConfigManager;
-import com.projectkorra.projectkorra.util.TempBlock;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.permissions.Permission;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
 public final class Landslide extends EarthAbility implements AddonAbility {
@@ -52,7 +49,6 @@ public final class Landslide extends EarthAbility implements AddonAbility {
 
     private void setFields() {
         SPEED = ConfigManager.defaultConfig.get().getDouble(path+"SPEED");
-
         SOURCE_RANGE = ConfigManager.defaultConfig.get().getLong(path+"SOURCE_RANGE");
         COOLDOWN = ConfigManager.defaultConfig.get().getLong(path+"COOLDOWN");
         RANGE = ConfigManager.defaultConfig.get().getLong(path+"RANGE");
@@ -66,6 +62,7 @@ public final class Landslide extends EarthAbility implements AddonAbility {
 
         Block block = getEarthSourceBlock(player, "Landslide", SOURCE_RANGE);
         if(block == null) {
+            System.out.println("Block null");
             return;
         }
         distanceTravelled = 0;
@@ -78,7 +75,6 @@ public final class Landslide extends EarthAbility implements AddonAbility {
 
         state = States.SOURCE_SELECTED;
 
-
         start();
 
     }
@@ -88,17 +84,19 @@ public final class Landslide extends EarthAbility implements AddonAbility {
             directionMain = GeneralMethods.getDirection(locationMain, GeneralMethods.getTargetedLocation(player, SOURCE_RANGE * SOURCE_RANGE)).normalize().multiply(SPEED);
             directionRight = GeneralMethods.getDirection(locationRight, GeneralMethods.getTargetedLocation(player, SOURCE_RANGE * SOURCE_RANGE)).normalize().multiply(SPEED);
             directionLeft = GeneralMethods.getDirection(locationLeft, GeneralMethods.getTargetedLocation(player, SOURCE_RANGE * SOURCE_RANGE)).normalize().multiply(SPEED);
+            locationMain.add(directionMain);
+            locationLeft.add(directionLeft);
+            locationRight.add(directionRight);
             state = States.TRAVELLING;
 
         }
 
     }
 
-    public void Line(Location location, Vector direction, long range) {
+    public void Line(Location location, long range) {
         playEarthbendingSound(location);
-        location.add(direction);
         while(distanceTravelled > range) {
-            new TempFallingBlock(location, location.getBlock().getType().createBlockData(), new Vector(0.0, 0.35, 0.0), this);
+            GeneralMethods.spawnFallingBlock(location, location.getBlock().getType(),location.getBlock().getType().createBlockData());
         }
 
     }
@@ -119,16 +117,11 @@ public final class Landslide extends EarthAbility implements AddonAbility {
     }
 
     private void progressTravelling() {
-        locationMain.add(directionMain);
-        locationLeft.add(directionLeft);
-        locationRight.add(directionRight);
 
         distanceTravelled += SPEED;
-
-        Line(locationMain, directionMain, RANGE);
-        Line(locationRight, directionRight, RANGE);
-        Line(locationLeft, directionLeft, RANGE);
-
+        Line(locationMain, RANGE);
+        Line(locationRight, RANGE);
+        Line(locationLeft, RANGE);
 
     }
 
@@ -208,3 +201,4 @@ public final class Landslide extends EarthAbility implements AddonAbility {
         return VERSION;
     }
 }
+
