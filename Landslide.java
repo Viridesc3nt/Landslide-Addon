@@ -15,7 +15,7 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.permissions.Permission;
 import org.bukkit.util.Vector;
-
+import java.util.Random;
 public final class Landslide extends EarthAbility implements AddonAbility {
 
     private enum States {
@@ -27,7 +27,7 @@ public final class Landslide extends EarthAbility implements AddonAbility {
     private static final String NAME = "Landslide";
     private static long COOLDOWN;
     private static long RANGE;
-
+    Random rand = new Random();
     private static long SOURCE_RANGE;
     private static double SPEED;
     static String path = "ExtraAbilities.Viridescent_.Earth.Landslide.";
@@ -93,12 +93,14 @@ public final class Landslide extends EarthAbility implements AddonAbility {
 
     }
 
-    public void Line(Location location, long range) {
+    public void Line(Location location,Vector direction, double speed) {
         playEarthbendingSound(location);
-        while(distanceTravelled > range) {
-            GeneralMethods.spawnFallingBlock(location, location.getBlock().getType(),location.getBlock().getType().createBlockData());
+        int yRandom = rand.nextInt(2);
+        location.add(0, yRandom, 0);
+        for (int i = 0; i < speed; i++) {
+            location.add(direction);
+            GeneralMethods.spawnFallingBlock(location, location.getBlock().getType(),location.getBlock().getType().createBlockData()).setVelocity(new Vector(0,yRandom, 0));
         }
-
     }
 
     public void removeWithCooldown() {
@@ -117,11 +119,10 @@ public final class Landslide extends EarthAbility implements AddonAbility {
     }
 
     private void progressTravelling() {
-
         distanceTravelled += SPEED;
-        Line(locationMain, RANGE);
-        Line(locationRight, RANGE);
-        Line(locationLeft, RANGE);
+        Line(locationMain, directionMain, SPEED);
+        Line(locationRight,directionRight, SPEED);
+        Line(locationLeft, directionLeft, SPEED);
 
     }
 
