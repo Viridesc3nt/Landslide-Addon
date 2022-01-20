@@ -7,11 +7,15 @@ import com.projectkorra.projectkorra.ProjectKorra;
 import com.projectkorra.projectkorra.ability.AddonAbility;
 import com.projectkorra.projectkorra.ability.EarthAbility;
 import com.projectkorra.projectkorra.configuration.ConfigManager;
+import com.projectkorra.projectkorra.util.DamageHandler;
 import com.projectkorra.projectkorra.util.TempBlock;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.FallingBlock;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
@@ -20,6 +24,8 @@ import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.permissions.Permission;
 import org.bukkit.util.Vector;
+
+import java.util.List;
 import java.util.Random;
 public final class Landslide extends EarthAbility implements AddonAbility, Listener {
 
@@ -69,39 +75,68 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
             System.out.println("Block null");
             return;
         }
-        distanceTravelled = 0;
         mainSourceBlock = block;
         direction = player.getLocation().getDirection().setY(0);
         mainSourceBlock.getLocation().setDirection(direction);
-        sourceBlockLeft =  GeneralMethods.getLeftSide(mainSourceBlock.getLocation().setDirection(player.getLocation().getDirection()), 1).getBlock();
-        sourceBlockRight = GeneralMethods.getRightSide(mainSourceBlock.getLocation().setDirection(player.getLocation().getDirection()), 1).getBlock();
         locationMain = mainSourceBlock.getLocation().add(0.5, 0.5, 0.5).setDirection(player.getLocation().getDirection());
-        locationRight = sourceBlockRight.getLocation().add(.5, .5, .5).setDirection(player.getLocation().getDirection());
-        locationLeft = sourceBlockLeft.getLocation().add(.5, .5, .5).setDirection(player.getLocation().getDirection());
-        System.out.println(locationMain);
-        System.out.println(locationRight);
-        System.out.println(locationLeft);
+        sourceBlockLeft =  GeneralMethods.getLeftSide(locationMain.setDirection(player.getLocation().getDirection()), 1).getBlock();
+        sourceBlockRight = GeneralMethods.getRightSide(locationMain.setDirection(player.getLocation().getDirection()), 1).getBlock();
+        locationRight = sourceBlockRight.getLocation().add(.5, .5, .5);
+        locationLeft = sourceBlockLeft.getLocation().add(.5, .5, .5);
         state = States.SOURCE_SELECTED;
-        start();
+
+        if(!bPlayer.isOnCooldown(this)) {
+            start();
+        }
 
     }
-
-
-
 
     public void removeWithCooldown() {
         remove();
         bPlayer.addCooldown(this);
     }
 
+    private void affectTargets() {
+        List<Entity> targets = GeneralMethods.getEntitiesAroundPoint(locationMain, 3);
+            for(Entity target : targets) {
+                if(target.getUniqueId() == player.getUniqueId()) {
+                    continue;
+                }
+                if(target instanceof LivingEntity) {
+                    DamageHandler.damageEntity(target, DAMAGE, this);
+                    target.setVelocity(new Vector(0.25, 0.25, 0));
+                }
+            }
+
+        }
+
+
+    private boolean climb() {
+        Block above = locationMain.getBlock().getRelative(BlockFace.UP);
+        if (!isTransparent(above)) {
+            locationMain.add(0, 1, 0);
+            locationLeft.add(0, 1, 0);
+            locationRight.add(0, 1, 0);
+            above = locationMain.getBlock().getRelative(BlockFace.UP);
+            return isEarthbendable(locationMain.getBlock()) && isTransparent(above);
+        } else if (isTransparent(locationMain.getBlock()) ) {
+            locationMain.add(0, -1, 0);
+            locationLeft.add(0, -1, 0);
+            locationRight.add(0, -1, 0);
+            return isEarthbendable(locationMain.getBlock());
+        }
+        return true;
+    }
+
 
     public void Line(Location loc1, Location loc2, Location loc3, Vector direction) {
         playEarthbendingSound(locationMain);
-        this.direction = direction;
-        //double yRandom = rand.nextInt(2);
         FallingBlock b1 = GeneralMethods.spawnFallingBlock(loc1, loc1.getBlock().getType(),loc1.getBlock().getType().createBlockData());
         FallingBlock b2 = GeneralMethods.spawnFallingBlock(loc2, loc2.getBlock().getType(),loc2.getBlock().getType().createBlockData());
         FallingBlock b3 = GeneralMethods.spawnFallingBlock(loc3, loc3.getBlock().getType(),loc3.getBlock().getType().createBlockData());
+        b1.setDropItem(false);
+        b2.setDropItem(false);
+        b3.setDropItem(false);
         loc1.add(direction);
         loc2.add(direction);
         loc3.add(direction);
@@ -112,13 +147,10 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
             b1.setVelocity(new Vector(0,0.35, 0));
             b2.setVelocity(new Vector(0,0.35, 0));
             b3.setVelocity(new Vector(0,0.35, 0));
-            System.out.println(b1.getLocation());
-            System.out.println(b2.getLocation());
-            System.out.println(b3.getLocation());
+            affectTargets();
         }
 
     }
-
 
 
     private void progressSourceSelected() {
@@ -131,7 +163,12 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
     private void progressTravelling() {
         distanceTravelled += SPEED;
         Line(locationMain, locationLeft, locationRight, direction);
-
+        climb();
+        System.out.println(distanceTravelled);
+        if(distanceTravelled >= RANGE)  {
+            System.out.println(distanceTravelled);
+            removeWithCooldown();
+        }
     }
 
     @Override
@@ -139,18 +176,15 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
         if(!bPlayer.canBend(this)) {
             removeWithCooldown();
         }
-
         switch(state) {
             case SOURCE_SELECTED:
                 progressSourceSelected();
+
             case TRAVELLING:
                 progressTravelling();
-
         }
 
     }
-
-
 
     @Override
     public boolean isSneakAbility() {
@@ -165,6 +199,16 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
     @Override
     public long getCooldown() {
         return COOLDOWN;
+    }
+
+    @Override
+    public String getInstructions() {
+        return ChatColor.GREEN + "Simply press SNEAK on an Earthbendable around you to send a Landslide at your target, dealing considerable damage and knockback.";
+    }
+
+    @Override
+    public String getDescription() {
+        return ChatColor.GREEN + "Landslide is an Earthbending technique that allows it's user to manipulate the Earth under them and send masses of Rock and Dirt at them. This technique was often used by Chief of Metalbending, Toph Beifong.";
     }
 
     @Override
@@ -183,9 +227,9 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
         ProjectKorra.plugin.getServer().getPluginManager().addPermission(perm);
         listener = new LandslideListener();
         ConfigManager.defaultConfig.get().addDefault(path+"COOLDOWN", 6000);
-        ConfigManager.defaultConfig.get().addDefault(path+"RANGE", 25);
+        ConfigManager.defaultConfig.get().addDefault(path+"RANGE", 36);
         ConfigManager.defaultConfig.get().addDefault(path+"SOURCE_RANGE", 4);
-        ConfigManager.defaultConfig.get().addDefault(path+"SPEED", 40);
+        ConfigManager.defaultConfig.get().addDefault(path+"SPEED", 5);
         ConfigManager.defaultConfig.get().addDefault(path+"DAMAGE", 2);
         ConfigManager.defaultConfig.save();
         ProjectKorra.plugin.getServer().getPluginManager().registerEvents(listener, ProjectKorra.plugin);
