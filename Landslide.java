@@ -11,6 +11,7 @@ import com.projectkorra.projectkorra.util.DamageHandler;
 import com.projectkorra.projectkorra.util.TempBlock;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
@@ -51,6 +52,7 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
     private double knockBackX;
     private double knockBackY;
     private Vector Knockback;
+
     private double distanceTravelled;
     private Block mainSourceBlock;
     private Block sourceBlockLeft;
@@ -72,7 +74,7 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
         super(player);
         setFields();
 
-        Block block = getEarthSourceBlock(player, "Landslide", SOURCE_RANGE);
+        Block block = getEarthSourceBlock(player, "PK::Viridescent::Landslide", SOURCE_RANGE);
         if(block == null) {
             return;
         }
@@ -88,6 +90,7 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
 
         if(!bPlayer.isOnCooldown(this)) {
             start();
+
         }
 
     }
@@ -132,18 +135,23 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
 
     public void Line(Location loc1, Location loc2, Location loc3, Vector direction) {
         playEarthbendingSound(locationMain);
-        FallingBlock b1 = GeneralMethods.spawnFallingBlock(loc1, loc1.getBlock().getType(),loc1.getBlock().getType().createBlockData());
-        FallingBlock b2 = GeneralMethods.spawnFallingBlock(loc2, loc2.getBlock().getType(),loc2.getBlock().getType().createBlockData());
-        FallingBlock b3 = GeneralMethods.spawnFallingBlock(loc3, loc3.getBlock().getType(),loc3.getBlock().getType().createBlockData());
+        TempBlock airBlock = new TempBlock(locationMain.getBlock(), Material.AIR, locationMain.getBlock().getBlockData());
+        TempBlock airBlock2 = new TempBlock(locationRight.getBlock(), Material.AIR, locationRight.getBlock().getBlockData());
+        TempBlock airBlock3 = new TempBlock(locationLeft.getBlock(), Material.AIR, locationLeft.getBlock().getBlockData());
+
+        FallingBlock b1 = GeneralMethods.spawnFallingBlock(loc1.clone(), loc1.getBlock().getType(),loc1.getBlock().getType().createBlockData());
+        FallingBlock b2 = GeneralMethods.spawnFallingBlock(loc2.clone(), loc2.getBlock().getType(),loc2.getBlock().getType().createBlockData());
+        FallingBlock b3 = GeneralMethods.spawnFallingBlock(loc3.clone(), loc3.getBlock().getType(),loc3.getBlock().getType().createBlockData());
         b1.setDropItem(false);
         b2.setDropItem(false);
         b3.setDropItem(false);
         loc1.add(direction);
         loc2.add(direction);
         loc3.add(direction);
-        b1.setMetadata("Landslide", new FixedMetadataValue(ProjectKorra.plugin, 1));
-        b2.setMetadata("Landslide", new FixedMetadataValue(ProjectKorra.plugin, 1));
-        b3.setMetadata("Landslide", new FixedMetadataValue(ProjectKorra.plugin, 1));
+        b1.setMetadata("PK::Viridescent::Landslide", new FixedMetadataValue(ProjectKorra.plugin, airBlock));
+        b2.setMetadata("PK::Viridescent::Landslide", new FixedMetadataValue(ProjectKorra.plugin, airBlock2));
+        b3.setMetadata("PK::Viridescent::Landslide", new FixedMetadataValue(ProjectKorra.plugin, airBlock3));
+
         for (int i = 0; i < SPEED; i++) {
             b1.setVelocity(new Vector(0,0.35, 0));
             b2.setVelocity(new Vector(0,0.35, 0));
@@ -254,3 +262,4 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
         return VERSION;
     }
 }
+
