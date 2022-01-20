@@ -46,10 +46,10 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
     private Vector direction;
     private double distanceTravelled;
     private Block mainSourceBlock;
+    private Location sourceBlockLocation;
     private Block sourceBlockLeft;
     private Block sourceBlockRight;
     private States state;
-    private Location mainSourceLocation;
 
     private void setFields() {
         SPEED = ConfigManager.defaultConfig.get().getDouble(path+"SPEED");
@@ -71,32 +71,23 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
         }
         distanceTravelled = 0;
         mainSourceBlock = block;
-        sourceBlockLeft =  GeneralMethods.getLeftSide(mainSourceBlock.getLocation(), 1).getBlock();
-        sourceBlockRight = GeneralMethods.getRightSide(mainSourceBlock.getLocation(), 1).getBlock();
+        direction = player.getLocation().getDirection().setY(0);
+        mainSourceBlock.getLocation().setDirection(direction);
+        sourceBlockLeft =  GeneralMethods.getLeftSide(mainSourceBlock.getLocation().setDirection(player.getLocation().getDirection()), 1).getBlock();
+        sourceBlockRight = GeneralMethods.getRightSide(mainSourceBlock.getLocation().setDirection(player.getLocation().getDirection()), 1).getBlock();
         locationMain = mainSourceBlock.getLocation().add(0.5, 0.5, 0.5).setDirection(player.getLocation().getDirection());
-        locationRight = sourceBlockRight.getLocation().add(.5, .5, .5);
-        locationLeft = sourceBlockLeft.getLocation().add(.5, .5, .5);
+        locationRight = sourceBlockRight.getLocation().add(.5, .5, .5).setDirection(player.getLocation().getDirection());
+        locationLeft = sourceBlockLeft.getLocation().add(.5, .5, .5).setDirection(player.getLocation().getDirection());
         System.out.println(locationMain);
         System.out.println(locationRight);
         System.out.println(locationLeft);
-        direction = player.getLocation().getDirection().setY(0);
         state = States.SOURCE_SELECTED;
-
         start();
 
     }
 
-    public void onClick() {
-        if(state == States.SOURCE_SELECTED) {
-            direction = player.getLocation().getDirection().setY(0);
-            locationMain.add(direction);
-            locationLeft.add(direction);
-            locationRight.add(direction);
-            state = States.TRAVELLING;
 
-        }
 
-    }
 
     public void removeWithCooldown() {
         remove();
@@ -110,7 +101,7 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
         //double yRandom = rand.nextInt(2);
         FallingBlock b1 = GeneralMethods.spawnFallingBlock(loc1, loc1.getBlock().getType(),loc1.getBlock().getType().createBlockData());
         FallingBlock b2 = GeneralMethods.spawnFallingBlock(loc2, loc2.getBlock().getType(),loc2.getBlock().getType().createBlockData());
-        FallingBlock b3 =   GeneralMethods.spawnFallingBlock(loc3, loc3.getBlock().getType(),loc3.getBlock().getType().createBlockData());
+        FallingBlock b3 = GeneralMethods.spawnFallingBlock(loc3, loc3.getBlock().getType(),loc3.getBlock().getType().createBlockData());
         loc1.add(direction);
         loc2.add(direction);
         loc3.add(direction);
@@ -121,8 +112,11 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
             b1.setVelocity(new Vector(0,0.35, 0));
             b2.setVelocity(new Vector(0,0.35, 0));
             b3.setVelocity(new Vector(0,0.35, 0));
+            System.out.println(b1.getLocation());
+            System.out.println(b2.getLocation());
+            System.out.println(b3.getLocation());
         }
-        removeWithCooldown();
+
     }
 
 
@@ -131,8 +125,6 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
         if(mainSourceBlock.getLocation().distanceSquared(player.getLocation()) > SOURCE_RANGE * SOURCE_RANGE || !isEarthbendable(player, mainSourceBlock)) {
             remove();
         }
-
-
 
     }
 
