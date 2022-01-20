@@ -14,6 +14,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.LivingEntity;
@@ -133,34 +134,20 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
     }
 
 
-    public void Line(Location loc1, Location loc2, Location loc3, Vector direction) {
+    public void Line(Location loc) {
         playEarthbendingSound(locationMain);
-        TempBlock airBlock = new TempBlock(locationMain.getBlock(), Material.AIR, locationMain.getBlock().getBlockData());
-        TempBlock airBlock2 = new TempBlock(locationRight.getBlock(), Material.AIR, locationRight.getBlock().getBlockData());
-        TempBlock airBlock3 = new TempBlock(locationLeft.getBlock(), Material.AIR, locationLeft.getBlock().getBlockData());
-
-        FallingBlock b1 = GeneralMethods.spawnFallingBlock(loc1.clone(), loc1.getBlock().getType(),loc1.getBlock().getType().createBlockData());
-        FallingBlock b2 = GeneralMethods.spawnFallingBlock(loc2.clone(), loc2.getBlock().getType(),loc2.getBlock().getType().createBlockData());
-        FallingBlock b3 = GeneralMethods.spawnFallingBlock(loc3.clone(), loc3.getBlock().getType(),loc3.getBlock().getType().createBlockData());
+        BlockData block = loc.getBlock().getBlockData();
+        TempBlock airBlock = new TempBlock(loc.getBlock(), Material.AIR);
+        FallingBlock b1 = GeneralMethods.spawnFallingBlock(loc.clone(), loc.getBlock().getType(),block);
         b1.setDropItem(false);
-        b2.setDropItem(false);
-        b3.setDropItem(false);
-        loc1.add(direction);
-        loc2.add(direction);
-        loc3.add(direction);
+        loc.add(direction);
         b1.setMetadata("PK::Viridescent::Landslide", new FixedMetadataValue(ProjectKorra.plugin, airBlock));
-        b2.setMetadata("PK::Viridescent::Landslide", new FixedMetadataValue(ProjectKorra.plugin, airBlock2));
-        b3.setMetadata("PK::Viridescent::Landslide", new FixedMetadataValue(ProjectKorra.plugin, airBlock3));
-
         for (int i = 0; i < SPEED; i++) {
             b1.setVelocity(new Vector(0,0.35, 0));
-            b2.setVelocity(new Vector(0,0.35, 0));
-            b3.setVelocity(new Vector(0,0.35, 0));
             affectTargets();
         }
 
     }
-
 
     private void progressSourceSelected() {
         if(mainSourceBlock.getLocation().distanceSquared(player.getLocation()) > SOURCE_RANGE * SOURCE_RANGE || !isEarthbendable(player, mainSourceBlock)) {
@@ -171,7 +158,9 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
 
     private void progressTravelling() {
         distanceTravelled += SPEED;
-        Line(locationMain, locationLeft, locationRight, direction);
+        Line(locationMain);
+        Line(locationRight);
+        Line(locationLeft);
         climb();
         System.out.println(distanceTravelled);
         if(distanceTravelled >= RANGE)  {
@@ -262,4 +251,5 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
         return VERSION;
     }
 }
+
 
