@@ -24,9 +24,8 @@ import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.permissions.Permission;
 import org.bukkit.util.Vector;
-
 import java.util.List;
-import java.util.Random;
+
 public final class Landslide extends EarthAbility implements AddonAbility, Listener {
 
     private enum States {
@@ -38,7 +37,6 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
     private static final String NAME = "Landslide";
     private static long COOLDOWN;
     private static long RANGE;
-    Random rand = new Random();
     private static long SOURCE_RANGE;
     private static double SPEED;
     static String path = "ExtraAbilities.Viridescent_.Earth.Landslide.";
@@ -50,9 +48,11 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
     private Listener listener;
     private Permission perm;
     private Vector direction;
+    private double knockBackX;
+    private double knockBackY;
+    private Vector Knockback;
     private double distanceTravelled;
     private Block mainSourceBlock;
-    private Location sourceBlockLocation;
     private Block sourceBlockLeft;
     private Block sourceBlockRight;
     private States state;
@@ -63,6 +63,8 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
         COOLDOWN = ConfigManager.defaultConfig.get().getLong(path+"COOLDOWN");
         RANGE = ConfigManager.defaultConfig.get().getLong(path+"RANGE");
         DAMAGE = ConfigManager.defaultConfig.get().getDouble(path+"DAMAGE");
+        knockBackX = ConfigManager.defaultConfig.get().getDouble(path+"knockBackX");
+        knockBackY = ConfigManager.defaultConfig.get().getDouble(path+"knockBackY");
     }
 
 
@@ -72,7 +74,6 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
 
         Block block = getEarthSourceBlock(player, "Landslide", SOURCE_RANGE);
         if(block == null) {
-            System.out.println("Block null");
             return;
         }
         mainSourceBlock = block;
@@ -104,12 +105,12 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
                 }
                 if(target instanceof LivingEntity) {
                     DamageHandler.damageEntity(target, DAMAGE, this);
-                    target.setVelocity(new Vector(0.25, 0.25, 0));
+                    Knockback = new Vector(knockBackX, knockBackY, 0);
+                    target.setVelocity(Knockback);
                 }
             }
 
         }
-
 
     private boolean climb() {
         Block above = locationMain.getBlock().getRelative(BlockFace.UP);
@@ -166,7 +167,6 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
         climb();
         System.out.println(distanceTravelled);
         if(distanceTravelled >= RANGE)  {
-            System.out.println(distanceTravelled);
             removeWithCooldown();
         }
     }
@@ -223,25 +223,25 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
 
     @Override
     public void load() {
+        listener = new LandslideListener();
         perm = new Permission("bending.ability.Landslide");
         ProjectKorra.plugin.getServer().getPluginManager().addPermission(perm);
-        listener = new LandslideListener();
+        ProjectKorra.plugin.getServer().getPluginManager().registerEvents(listener, ProjectKorra.plugin);
         ConfigManager.defaultConfig.get().addDefault(path+"COOLDOWN", 6000);
-        ConfigManager.defaultConfig.get().addDefault(path+"RANGE", 36);
+        ConfigManager.defaultConfig.get().addDefault(path+"RANGE", 80);
         ConfigManager.defaultConfig.get().addDefault(path+"SOURCE_RANGE", 4);
         ConfigManager.defaultConfig.get().addDefault(path+"SPEED", 5);
         ConfigManager.defaultConfig.get().addDefault(path+"DAMAGE", 2);
+        ConfigManager.defaultConfig.get().addDefault(path+"knockBackX", 1);
+        ConfigManager.defaultConfig.get().addDefault(path+"knockBackY", 1);
         ConfigManager.defaultConfig.save();
-        ProjectKorra.plugin.getServer().getPluginManager().registerEvents(listener, ProjectKorra.plugin);
-
 
     }
 
     @Override
     public void stop() {
-        ProjectKorra.plugin.getServer().getPluginManager().removePermission(perm);
         HandlerList.unregisterAll(listener);
-
+        ProjectKorra.plugin.getServer().getPluginManager().removePermission(perm);
     }
 
     @Override
