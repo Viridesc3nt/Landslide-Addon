@@ -7,16 +7,21 @@ import com.projectkorra.projectkorra.ProjectKorra;
 import com.projectkorra.projectkorra.ability.AddonAbility;
 import com.projectkorra.projectkorra.ability.EarthAbility;
 import com.projectkorra.projectkorra.configuration.ConfigManager;
+import com.projectkorra.projectkorra.util.TempBlock;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
+import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityChangeBlockEvent;
+import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.permissions.Permission;
 import org.bukkit.util.Vector;
 import java.util.Random;
-public final class Landslide extends EarthAbility implements AddonAbility {
+public final class Landslide extends EarthAbility implements AddonAbility, Listener {
 
     private enum States {
         SOURCE_SELECTED, TRAVELLING
@@ -38,14 +43,13 @@ public final class Landslide extends EarthAbility implements AddonAbility {
     private Location locationLeft;
     private Listener listener;
     private Permission perm;
-    private Vector directionMain;
-    private Vector directionRight;
-    private Vector directionLeft;
+    private Vector direction;
     private double distanceTravelled;
     private Block mainSourceBlock;
     private Block sourceBlockLeft;
     private Block sourceBlockRight;
     private States state;
+    private Location mainSourceLocation;
 
     private void setFields() {
         SPEED = ConfigManager.defaultConfig.get().getDouble(path+"SPEED");
@@ -69,10 +73,13 @@ public final class Landslide extends EarthAbility implements AddonAbility {
         mainSourceBlock = block;
         sourceBlockLeft =  GeneralMethods.getLeftSide(mainSourceBlock.getLocation(), 1).getBlock();
         sourceBlockRight = GeneralMethods.getRightSide(mainSourceBlock.getLocation(), 1).getBlock();
-        locationMain = mainSourceBlock.getLocation().add(.5, .5, .5);
+        locationMain = mainSourceBlock.getLocation().add(0.5, 0.5, 0.5).setDirection(player.getLocation().getDirection());
         locationRight = sourceBlockRight.getLocation().add(.5, .5, .5);
         locationLeft = sourceBlockLeft.getLocation().add(.5, .5, .5);
-
+        System.out.println(locationMain);
+        System.out.println(locationRight);
+        System.out.println(locationLeft);
+        direction = player.getLocation().getDirection().setY(0);
         state = States.SOURCE_SELECTED;
 
         start();
@@ -81,35 +88,46 @@ public final class Landslide extends EarthAbility implements AddonAbility {
 
     public void onClick() {
         if(state == States.SOURCE_SELECTED) {
-            directionMain = GeneralMethods.getDirection(locationMain, GeneralMethods.getTargetedLocation(player, SOURCE_RANGE * SOURCE_RANGE)).normalize().multiply(SPEED);
-            directionRight = GeneralMethods.getDirection(locationRight, GeneralMethods.getTargetedLocation(player, SOURCE_RANGE * SOURCE_RANGE)).normalize().multiply(SPEED);
-            directionLeft = GeneralMethods.getDirection(locationLeft, GeneralMethods.getTargetedLocation(player, SOURCE_RANGE * SOURCE_RANGE)).normalize().multiply(SPEED);
-            locationMain.add(directionMain);
-            locationLeft.add(directionLeft);
-            locationRight.add(directionRight);
+            direction = player.getLocation().getDirection().setY(0);
+            locationMain.add(direction);
+            locationLeft.add(direction);
+            locationRight.add(direction);
             state = States.TRAVELLING;
 
         }
 
     }
 
-    public void Line(Location location,Vector direction, double speed) {
-        playEarthbendingSound(location);
-        int yRandom = rand.nextInt(2);
-        location.add(0, yRandom, 0);
-        for (int i = 0; i < speed; i++) {
-            location.add(direction);
-            GeneralMethods.spawnFallingBlock(location, location.getBlock().getType(),location.getBlock().getType().createBlockData()).setVelocity(new Vector(0,yRandom, 0));
-        }
-    }
-
     public void removeWithCooldown() {
         remove();
         bPlayer.addCooldown(this);
+    }
+
+
+    public void Line(Location loc1, Location loc2, Location loc3, Vector direction) {
+        playEarthbendingSound(locationMain);
+        this.direction = direction;
+        //double yRandom = rand.nextInt(2);
+        FallingBlock b1 = GeneralMethods.spawnFallingBlock(loc1, loc1.getBlock().getType(),loc1.getBlock().getType().createBlockData());
+        FallingBlock b2 = GeneralMethods.spawnFallingBlock(loc2, loc2.getBlock().getType(),loc2.getBlock().getType().createBlockData());
+        FallingBlock b3 =   GeneralMethods.spawnFallingBlock(loc3, loc3.getBlock().getType(),loc3.getBlock().getType().createBlockData());
+        loc1.add(direction);
+        loc2.add(direction);
+        loc3.add(direction);
+        b1.setMetadata("Landslide", new FixedMetadataValue(ProjectKorra.plugin, 1));
+        b2.setMetadata("Landslide", new FixedMetadataValue(ProjectKorra.plugin, 1));
+        b3.setMetadata("Landslide", new FixedMetadataValue(ProjectKorra.plugin, 1));
+        for (int i = 0; i < SPEED; i++) {
+            b1.setVelocity(new Vector(0,0.35, 0));
+            b2.setVelocity(new Vector(0,0.35, 0));
+            b3.setVelocity(new Vector(0,0.35, 0));
         }
+        removeWithCooldown();
+    }
+
+
 
     private void progressSourceSelected() {
-        System.out.println("Source selected");
         if(mainSourceBlock.getLocation().distanceSquared(player.getLocation()) > SOURCE_RANGE * SOURCE_RANGE || !isEarthbendable(player, mainSourceBlock)) {
             remove();
         }
@@ -120,9 +138,7 @@ public final class Landslide extends EarthAbility implements AddonAbility {
 
     private void progressTravelling() {
         distanceTravelled += SPEED;
-        Line(locationMain, directionMain, SPEED);
-        Line(locationRight,directionRight, SPEED);
-        Line(locationLeft, directionLeft, SPEED);
+        Line(locationMain, locationLeft, locationRight, direction);
 
     }
 
@@ -175,9 +191,9 @@ public final class Landslide extends EarthAbility implements AddonAbility {
         ProjectKorra.plugin.getServer().getPluginManager().addPermission(perm);
         listener = new LandslideListener();
         ConfigManager.defaultConfig.get().addDefault(path+"COOLDOWN", 6000);
-        ConfigManager.defaultConfig.get().addDefault(path+"RANGE", 10);
+        ConfigManager.defaultConfig.get().addDefault(path+"RANGE", 25);
         ConfigManager.defaultConfig.get().addDefault(path+"SOURCE_RANGE", 4);
-        ConfigManager.defaultConfig.get().addDefault(path+"SPEED", 3);
+        ConfigManager.defaultConfig.get().addDefault(path+"SPEED", 40);
         ConfigManager.defaultConfig.get().addDefault(path+"DAMAGE", 2);
         ConfigManager.defaultConfig.save();
         ProjectKorra.plugin.getServer().getPluginManager().registerEvents(listener, ProjectKorra.plugin);
@@ -202,4 +218,3 @@ public final class Landslide extends EarthAbility implements AddonAbility {
         return VERSION;
     }
 }
-
