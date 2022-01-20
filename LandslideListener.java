@@ -1,6 +1,7 @@
 package me.justinjaques.landslide;
 
 import com.projectkorra.projectkorra.BendingPlayer;
+import com.projectkorra.projectkorra.ProjectKorra;
 import com.projectkorra.projectkorra.ability.CoreAbility;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -14,23 +15,17 @@ public class LandslideListener implements Listener {
     @EventHandler
     public void onSneak(PlayerToggleSneakEvent event) {
         Player player = event.getPlayer();
-
         BendingPlayer bPlayer = BendingPlayer.getBendingPlayer(player);
-
-        //if(bPlayer.canBend(CoreAbility.getAbility(player, Landslide.class))) {
-        System.out.println("Landslide generated");
-        new Landslide(player);
-
-        // }
+        if(bPlayer.canBend(CoreAbility.getAbility(Landslide.class))) {
+            new Landslide(player);
+        }
     }
 
     @EventHandler
     public void check(EntityChangeBlockEvent event) {
         if (event.getEntity().hasMetadata("Landslide")) {
-            event.setCancelled(true);
+            //event.setCancelled(true);
         }
 
     }
 }
-
-
