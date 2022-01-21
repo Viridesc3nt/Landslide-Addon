@@ -22,7 +22,7 @@ public class LandslideListener implements Listener {
         Player player = event.getPlayer();
         BendingPlayer bPlayer = BendingPlayer.getBendingPlayer(player);
 
-        if(CoreAbility.getAbility(Landslide.class).isStarted()) {
+        if(CoreAbility.getAbility(Landslide.class).isStarted() && event.isSneaking()) {
             event.setCancelled(true);
         }
         if(bPlayer.canBend(CoreAbility.getAbility(Landslide.class))) {
