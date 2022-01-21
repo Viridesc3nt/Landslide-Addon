@@ -30,9 +30,6 @@ import java.util.List;
 
 public final class Landslide extends EarthAbility implements AddonAbility, Listener {
 
-    private enum States {
-        SOURCE_SELECTED, TRAVELLING
-    }
 
     private static final String AUTHOR = ChatColor.GREEN + "Viridescent_";
     private static final String VERSION = ChatColor.GREEN + "1.0.0";
@@ -58,7 +55,6 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
     private Block mainSourceBlock;
     private Block sourceBlockLeft;
     private Block sourceBlockRight;
-    private States state;
 
     private void setFields() {
         SPEED = ConfigManager.defaultConfig.get().getDouble(path+"SPEED");
@@ -75,7 +71,7 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
         super(player);
         setFields();
 
-        Block block = getEarthSourceBlock(player, "PK::Viridescent::Landslide", SOURCE_RANGE);
+        Block block = getEarthSourceBlock(player, "PK::Viridescent::Landslide", RANGE);
         if(block == null) {
             return;
         }
@@ -87,13 +83,10 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
         sourceBlockRight = GeneralMethods.getRightSide(locationMain.setDirection(player.getLocation().getDirection()), 1).getBlock();
         locationRight = sourceBlockRight.getLocation().add(.5, .5, .5);
         locationLeft = sourceBlockLeft.getLocation().add(.5, .5, .5);
-        state = States.SOURCE_SELECTED;
 
         if(!bPlayer.isOnCooldown(this)) {
             start();
-
         }
-
     }
 
     public void removeWithCooldown() {
@@ -116,21 +109,19 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
 
         }
 
-    private boolean climb() {
+    private void climb() {
         Block above = locationMain.getBlock().getRelative(BlockFace.UP);
         if (!isTransparent(above)) {
             locationMain.add(0, 1, 0);
             locationLeft.add(0, 1, 0);
             locationRight.add(0, 1, 0);
-            above = locationMain.getBlock().getRelative(BlockFace.UP);
-            return isEarthbendable(locationMain.getBlock()) && isTransparent(above);
         } else if (isTransparent(locationMain.getBlock()) ) {
             locationMain.add(0, -1, 0);
             locationLeft.add(0, -1, 0);
             locationRight.add(0, -1, 0);
-            return isEarthbendable(locationMain.getBlock());
+
         }
-        return true;
+
     }
 
 
@@ -145,24 +136,16 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
         for (int i = 0; i < SPEED; i++) {
             b1.setVelocity(new Vector(0,0.35, 0));
             affectTargets();
+            climb();
         }
 
     }
 
-    private void progressSourceSelected() {
-        if(mainSourceBlock.getLocation().distanceSquared(player.getLocation()) > SOURCE_RANGE * SOURCE_RANGE || !isEarthbendable(player, mainSourceBlock)) {
-            remove();
-        }
-
-    }
-
-    private void progressTravelling() {
+    private void startMove() {
         distanceTravelled += SPEED;
         Line(locationMain);
         Line(locationRight);
         Line(locationLeft);
-        climb();
-        System.out.println(distanceTravelled);
         if(distanceTravelled >= RANGE)  {
             removeWithCooldown();
         }
@@ -173,14 +156,7 @@ public final class Landslide extends EarthAbility implements AddonAbility, Liste
         if(!bPlayer.canBend(this)) {
             removeWithCooldown();
         }
-        switch(state) {
-            case SOURCE_SELECTED:
-                progressSourceSelected();
-
-            case TRAVELLING:
-                progressTravelling();
-        }
-
+        startMove();
     }
 
     @Override
